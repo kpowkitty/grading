@@ -15,12 +15,5 @@ Project expectations:
 
 Project structure:
 * `grader/` contains all of the grading modules.
-  * `grader/controller.py` has control methods for running all files or a single
-file
-  * `grader/core.py` is the main class to run the assignment grader
-  * `grader/utils.py` are various utils to help assignment grading
 
-* `scripts/` is where each grader script is put
-  * `scripts/grade_all.py` runs the general grading script for all students
-  * `scripts/grade_one.py` runs the general grading script for a single student
-  * the rest of the scripts are per assignment, and organized as such
+* `scripts/` is where each grader script is put.
