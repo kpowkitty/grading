@@ -1,4 +1,8 @@
 submissions_unzip/*
+submissions_base/*
 testing_files/*
 grading_output.txt
 submissions.zip
+__pycache__
+__init__.*
+.DS_Store

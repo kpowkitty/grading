@@ -1,0 +1,41 @@
+10
+abcde
+2
+deabc
+false
+racecar
+3
+carrace
+false
+aabbaa
+1
+aaabba
+false
+ab
+1
+ba
+false
+abcdcba
+7
+abcdcba
+true
+orevenneverodd
+8
+neveroddoreven
+true
+a man a plan
+3
+lana man a p
+false
+o petsstep on n
+9
+step on no pets
+true
+aibohphobia
+6
+phobiaaiboh
+false
+racatisawwasitacaro
+29
+wasitacaroracatisaw
+true
