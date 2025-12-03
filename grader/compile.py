@@ -6,7 +6,7 @@ def compile_cpp_files():
     if not cpp_files:
         raise FileNotFoundError("No .cpp files found in current folder")
     print("\n--- Compiling: ---\n", cpp_files)
-    result = subprocess.run(["g++", "-std=c++11", "-c"] + cpp_files,
+    result = subprocess.run(["g++", "-std=c++20", "-c"] + cpp_files,
                             capture_output=True, text=True)
     print(result.stdout, end='')
     print(result.stderr, end='')
