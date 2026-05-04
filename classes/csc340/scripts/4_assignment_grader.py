@@ -6,7 +6,7 @@ import re
 import subprocess
 from contextlib import contextmanager
 
-project_root = Path(__file__).resolve().parent.parent
+project_root = next(p for p in Path(__file__).resolve().parents if (p / ".git").exists())
 sys.path.insert(0, str(project_root))
 
 from grader.extract import unzip_submission, flatten

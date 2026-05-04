@@ -1,14 +1,22 @@
-submissions_unzip/*
+# Per-class runtime working dirs and assignment data (under classes/<class>/)
+submissions_unzip/
+individual_submissions/
+*misc
+
+# Misc generated files
 submissions_base/*
 testing_files/*
 grading_output.txt
 submissions.zip
-__pycache__
-__init__.*
-.DS_Store
+similarity_report.txt
 2_assignment_submissions
 2_assignment_files
-similarity_report.txt
+
+# Python
+__pycache__/
+*.pyc
+__init__.*
+
+# Editor / OS
+.DS_Store
 .claude
-individual_submissions/
-*misc
