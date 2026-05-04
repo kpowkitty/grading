@@ -31,6 +31,9 @@ def print_library_files(fname):
 
 def move_test_files(fname, test_files_folder):
     required_files = ["mainProgram.cpp", "testing.cpp", "testing.hpp", "test_cases.txt"]
+    # Files we don't replace if student has their own version
+    preserve_if_exists = ["mainProgram.cpp"]
+
     for file_name in required_files:
         student_file = os.path.join(fname, file_name)
         standard_file = os.path.join(test_files_folder, file_name)
@@ -38,7 +41,11 @@ def move_test_files(fname, test_files_folder):
         if not os.path.exists(student_file):
             shutil.copy(standard_file, fname)
         else:
-            if file_name != "test_cases.txt" and not filecmp.cmp(student_file, standard_file, shallow=False):
+            if file_name in preserve_if_exists:
+                # Just log diff, don't replace
+                if not filecmp.cmp(student_file, standard_file, shallow=False):
+                    log_diff(student_file, standard_file, file_name)
+            elif file_name != "test_cases.txt" and not filecmp.cmp(student_file, standard_file, shallow=False):
                 log_diff(student_file, standard_file, file_name)
                 shutil.copy(standard_file, fname)
             elif file_name == "test_cases.txt" and not filecmp.cmp(student_file, standard_file, shallow=False):
@@ -815,5 +822,381 @@ def check_test_case_files(folder_path: str) -> Dict[str, bool]:
         print("  ✗ No input test file found")
     if not results['has_output_file']:
         print("  ✗ No output/expected file found")
+
+    return results
+
+
+# ============================================================
+# ASSIGNMENT 4 SPECIFIC FUNCTIONS
+# ============================================================
+
+def check_style_and_documentation(folder_path: str, part_name: str) -> Dict[str, any]:
+    """
+    Check for programming style and documentation indicators in source files.
+
+    Args:
+        folder_path: Path to folder containing source files
+        part_name: Name of the part (for display purposes)
+
+    Returns:
+        Dict with style/documentation findings
+    """
+    results = {
+        'has_comments': False,
+        'has_function_comments': False,
+        'consistent_indentation': True,
+        'source_files': []
+    }
+
+    source_files = [f for f in os.listdir(folder_path)
+                    if (f.endswith('.cpp') or f.endswith('.h')) and not f.startswith('._')]
+
+    if not source_files:
+        print(f"  ✗ No source files found in {part_name}")
+        return results
+
+    results['source_files'] = source_files
+    print(f"  Source files found: {', '.join(source_files)}")
+
+    for file in source_files:
+        try:
+            with open(os.path.join(folder_path, file), 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
+
+                # Check for any comments
+                if '//' in content or '/*' in content:
+                    results['has_comments'] = True
+
+                # Check for function/parameter documentation patterns
+                if re.search(r'(//.*param|//.*return|/\*\*|\* @|// *function|// *purpose|// *objective)',
+                            content, re.IGNORECASE):
+                    results['has_function_comments'] = True
+
+        except Exception as e:
+            print(f"  Warning: Could not read {file}: {e}")
+
+    if results['has_comments']:
+        print(f"  ✓ Comments found in source files")
+    else:
+        print(f"  ✗ No comments found")
+
+    if results['has_function_comments']:
+        print(f"  ✓ Function/parameter documentation patterns found")
+    else:
+        print(f"  ⚠ No clear function documentation patterns found")
+
+    return results
+
+
+def check_recursive_function(folder_path: str) -> Dict[str, any]:
+    """
+    Check Part1 recursive function implementation for the J(n) sequence.
+
+    J(n) = 0 if n=0, 1 if n=1, 1 if n=2
+    J(n) = J(n-1) + 2*J(n-2) + 4*J(n-3) if n > 2
+
+    Args:
+        folder_path: Path to Part1 folder
+
+    Returns:
+        Dict with check results
+    """
+    results = {
+        'has_recursive_function': False,
+        'has_base_cases': False,
+        'has_recursive_call': False,
+        'uses_long_long': False,
+        'main_unmodified': None
+    }
+
+    print("\nChecking recursive function implementation...")
+
+    source_files = [f for f in os.listdir(folder_path)
+                    if f.endswith('.cpp') and not f.startswith('._')]
+
+    if not source_files:
+        print("  ✗ No .cpp files found in Part1")
+        return results
+
+    for file in source_files:
+        try:
+            with open(os.path.join(folder_path, file), 'r', encoding='utf-8', errors='ignore') as f:
+                content = f.read()
+
+                # Check for long long return type
+                if re.search(r'long\s+long', content):
+                    results['uses_long_long'] = True
+
+                # Check for recursive function pattern
+                # Looking for function that calls itself with n-1, n-2, n-3
+                if re.search(r'\w+\s*\(\s*n\s*-\s*1\s*\)', content):
+                    results['has_recursive_call'] = True
+
+                # Check for base cases (n==0, n==1, n==2 or similar)
+                if re.search(r'(n\s*==\s*0|n\s*==\s*1|n\s*==\s*2|n\s*<\s*3|n\s*<=\s*2)', content):
+                    results['has_base_cases'] = True
+
+                # Check for the formula pattern: J(n-1) + 2*J(n-2) + 4*J(n-3)
+                if re.search(r'2\s*\*.*\(\s*n\s*-\s*2\s*\)', content) and \
+                   re.search(r'4\s*\*.*\(\s*n\s*-\s*3\s*\)', content):
+                    results['has_recursive_function'] = True
+
+        except Exception as e:
+            print(f"  Warning: Could not read {file}: {e}")
+
+    # Print results
+    if results['uses_long_long']:
+        print("  ✓ Uses long long return type")
+    else:
+        print("  ✗ long long return type not found")
+
+    if results['has_base_cases']:
+        print("  ✓ Base cases found")
+    else:
+        print("  ✗ Base cases not clearly found")
+
+    if results['has_recursive_call']:
+        print("  ✓ Recursive calls found")
+    else:
+        print("  ✗ Recursive calls not found")
+
+    if results['has_recursive_function']:
+        print("  ✓ Formula pattern (J(n-1) + 2*J(n-2) + 4*J(n-3)) found")
+    else:
+        print("  ⚠ Formula pattern not clearly detected - verify manually")
+
+    return results
+
+
+def check_mergesort_genai(folder_path: str) -> Dict[str, any]:
+    """
+    Check for mergeSortGenAI.cpp file in Part3.
+    Should be merge sort for linked list (NOT LinkedBag).
+
+    Args:
+        folder_path: Path to Part3 folder
+
+    Returns:
+        Dict with check results
+    """
+    results = {
+        'file_exists': False,
+        'is_linked_list': False,
+        'is_not_linkedbag': True,
+        'has_mergesort': False
+    }
+
+    print("\nChecking mergeSortGenAI.cpp...")
+
+    # Look for the file (case-insensitive)
+    genai_file = None
+    for f in os.listdir(folder_path):
+        if 'mergesortgenai' in f.lower() and f.endswith('.cpp'):
+            genai_file = f
+            break
+        elif 'merge' in f.lower() and 'genai' in f.lower() and f.endswith('.cpp'):
+            genai_file = f
+            break
+
+    if not genai_file:
+        print("  ✗ mergeSortGenAI.cpp not found")
+        return results
+
+    results['file_exists'] = True
+    print(f"  ✓ Found: {genai_file}")
+
+    try:
+        with open(os.path.join(folder_path, genai_file), 'r', encoding='utf-8', errors='ignore') as f:
+            content = f.read()
+            content_lower = content.lower()
+
+            # Check if it's for linked list
+            if 'node' in content_lower or 'listnode' in content_lower or 'next' in content_lower:
+                results['is_linked_list'] = True
+                print("  ✓ Appears to be for linked list (has Node/next)")
+            else:
+                print("  ⚠ May not be for linked list - verify manually")
+
+            # Check if it uses LinkedBag (it shouldn't)
+            if 'linkedbag' in content_lower:
+                results['is_not_linkedbag'] = False
+                print("  ✗ Contains LinkedBag - should only be for linked list")
+            else:
+                print("  ✓ Does not contain LinkedBag (correct)")
+
+            # Check for merge sort function
+            if re.search(r'merge\s*sort|mergesort', content_lower):
+                results['has_mergesort'] = True
+                print("  ✓ Contains merge sort function")
+            else:
+                print("  ⚠ Merge sort function not clearly identified")
+
+    except Exception as e:
+        print(f"  Warning: Could not read {genai_file}: {e}")
+
+    return results
+
+
+def check_mergesort_linkedbag(folder_path: str) -> Dict[str, any]:
+    """
+    Check for merge sort implementation in LinkedBag.
+    Should modify LinkedBag.h and LinkedBag.cpp.
+
+    Args:
+        folder_path: Path to Part3 folder
+
+    Returns:
+        Dict with check results
+    """
+    results = {
+        'linkedbag_h_found': False,
+        'linkedbag_cpp_found': False,
+        'mergesort_in_header': False,
+        'mergesort_in_cpp': False,
+        'merge_function_found': False
+    }
+
+    print("\nChecking LinkedBag merge sort implementation...")
+
+    # Search in Part3 and any LinkedBagDS subfolder
+    search_paths = [folder_path]
+    linkedbag_dir = os.path.join(folder_path, 'LinkedBagDS')
+    if os.path.exists(linkedbag_dir) and os.path.isdir(linkedbag_dir):
+        search_paths.append(linkedbag_dir)
+
+    for search_path in search_paths:
+        if not os.path.exists(search_path):
+            continue
+
+        for f in os.listdir(search_path):
+            f_lower = f.lower()
+
+            # Skip Mac metadata files
+            if f.startswith('._'):
+                continue
+
+            file_path = os.path.join(search_path, f)
+
+            # Check LinkedBag.h
+            if 'linkedbag' in f_lower and f.endswith('.h'):
+                results['linkedbag_h_found'] = True
+                print(f"  ✓ Found header: {f}")
+
+                try:
+                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as file:
+                        content = file.read()
+                        content_lower = content.lower()
+
+                        if 'mergesort' in content_lower or 'merge_sort' in content_lower:
+                            results['mergesort_in_header'] = True
+                            print("    ✓ mergeSort prototype found in header")
+                        else:
+                            print("    ⚠ mergeSort prototype not clearly found in header")
+
+                except Exception as e:
+                    print(f"    Warning: Could not read {f}: {e}")
+
+            # Check LinkedBag.cpp
+            if 'linkedbag' in f_lower and f.endswith('.cpp'):
+                results['linkedbag_cpp_found'] = True
+                print(f"  ✓ Found implementation: {f}")
+
+                try:
+                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as file:
+                        content = file.read()
+                        content_lower = content.lower()
+
+                        if 'mergesort' in content_lower or 'merge_sort' in content_lower:
+                            results['mergesort_in_cpp'] = True
+                            print("    ✓ mergeSort implementation found")
+
+                        # Check for merge helper function
+                        if re.search(r'(void|node|template).*merge\s*\(', content_lower):
+                            results['merge_function_found'] = True
+                            print("    ✓ merge helper function found")
+
+                except Exception as e:
+                    print(f"    Warning: Could not read {f}: {e}")
+
+    if not results['linkedbag_h_found']:
+        print("  ✗ LinkedBag.h not found")
+    if not results['linkedbag_cpp_found']:
+        print("  ✗ LinkedBag.cpp not found")
+    if not results['mergesort_in_header'] and not results['mergesort_in_cpp']:
+        print("  ✗ mergeSort not found in LinkedBag files")
+
+    return results
+
+
+def check_quicksort_ec(folder_path: str, check_style: bool = False,
+                       check_correctness: bool = False) -> Dict[str, any]:
+    """
+    Check for quick sort extra credit implementation in LinkedBag.
+
+    Args:
+        folder_path: Path to Part3 folder
+        check_style: Whether to check style/documentation
+        check_correctness: Whether to check for implementation
+
+    Returns:
+        Dict with check results
+    """
+    results = {
+        'quicksort_genai_found': False,
+        'quicksort_in_linkedbag': False,
+        'has_partition': False
+    }
+
+    if check_style:
+        print("\nChecking Quick Sort EC style/documentation...")
+    if check_correctness:
+        print("\nChecking Quick Sort EC implementation...")
+
+    # Search for quickSortGenAI.cpp
+    for f in os.listdir(folder_path):
+        if 'quicksort' in f.lower() and 'genai' in f.lower() and f.endswith('.cpp'):
+            results['quicksort_genai_found'] = True
+            print(f"  ✓ Found: {f}")
+            break
+
+    if not results['quicksort_genai_found']:
+        print("  ⚠ quickSortGenAI.cpp not found (EC may not be attempted)")
+        return results
+
+    # Search in Part3 and any LinkedBagDS subfolder
+    search_paths = [folder_path]
+    linkedbag_dir = os.path.join(folder_path, 'LinkedBagDS')
+    if os.path.exists(linkedbag_dir) and os.path.isdir(linkedbag_dir):
+        search_paths.append(linkedbag_dir)
+
+    for search_path in search_paths:
+        if not os.path.exists(search_path):
+            continue
+
+        for f in os.listdir(search_path):
+            if f.startswith('._'):
+                continue
+
+            if 'linkedbag' in f.lower() and (f.endswith('.cpp') or f.endswith('.h')):
+                try:
+                    with open(os.path.join(search_path, f), 'r',
+                             encoding='utf-8', errors='ignore') as file:
+                        content = file.read()
+                        content_lower = content.lower()
+
+                        if 'quicksort' in content_lower or 'quick_sort' in content_lower:
+                            results['quicksort_in_linkedbag'] = True
+                            print(f"  ✓ quickSort found in {f}")
+
+                        if 'partition' in content_lower:
+                            results['has_partition'] = True
+
+                except Exception as e:
+                    print(f"  Warning: Could not read {f}: {e}")
+
+    if results['quicksort_in_linkedbag']:
+        print("  ✓ Quick Sort EC appears to be implemented")
+    else:
+        print("  ⚠ Quick Sort not found in LinkedBag (EC may not be implemented)")
 
     return results

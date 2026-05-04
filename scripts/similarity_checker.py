@@ -21,6 +21,8 @@ SIMILARITY_THRESHOLD = 50  # Number of identical lines to flag
 SKIP_DIRS = {'linkedbagds', '.git', '.vs', 'x64', 'debug', 'release', 'build',
              'cmake-build-debug', 'cmake-build-release', '__macosx'}
 SKIP_PATTERNS = ['cmake', '.cmake', 'cmakelist']
+# Test main files added by grader - skip these to avoid false positives
+SKIP_FILES = {'linkedbagsortingmain.cpp', 'testmain_genai.cpp', 'testmain_part1.cpp'}
 
 
 def strip_comments(content: str) -> str:
@@ -44,6 +46,9 @@ def should_skip_file(filename: str) -> bool:
     for pattern in SKIP_PATTERNS:
         if pattern in lower:
             return True
+    # Skip test main files added by grader
+    if lower in SKIP_FILES:
+        return True
     return False
 
 

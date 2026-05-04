@@ -1,8 +1,12 @@
 import glob
 import subprocess
+import fnmatch
 
-def compile_cpp_files():
+def compile_cpp_files(exclude_patterns=None):
     cpp_files = glob.glob("*.cpp")
+    if exclude_patterns:
+        for pattern in exclude_patterns:
+            cpp_files = [f for f in cpp_files if not fnmatch.fnmatch(f, pattern)]
     if not cpp_files:
         raise FileNotFoundError("No .cpp files found in current folder")
     print("\n--- Compiling: ---\n", cpp_files)
@@ -52,14 +56,24 @@ def run_executable(executable_name, timeout_seconds=5):
         try:
             # Try to run for timeout_seconds
             stdout, stderr = process.communicate(timeout=timeout_seconds)
-            print(f"✓ Executable ran and completed (exit code: {process.returncode})")
+            if process.returncode == 0:
+                print(f"✓ Executable ran and completed (exit code: {process.returncode})")
+            elif process.returncode < 0:
+                # Negative return code means killed by signal (e.g., -11 = SIGSEGV)
+                import signal
+                sig_num = -process.returncode
+                sig_name = signal.Signals(sig_num).name if sig_num in signal.Signals._value2member_map_ else f"signal {sig_num}"
+                print(f"✗ Executable CRASHED ({sig_name}, exit code: {process.returncode})")
+            else:
+                print(f"✗ Executable failed (exit code: {process.returncode})")
             if stdout:
                 print("\n--- Program Output ---")
-                print(stdout[:1000])  # First 1000 chars
+                print(stdout[:10000])  # First 10000 chars
                 print("--- End Output ---\n")
             if stderr:
                 print("\n--- Errors ---")
-                print(stderr[:500])
+                print(stderr[:1000])
+                print("--- End Errors ---\n")
             return True
             
         except subprocess.TimeoutExpired:
@@ -69,8 +83,12 @@ def run_executable(executable_name, timeout_seconds=5):
             print(f"✓ Executable started (timed out after {timeout_seconds}s - likely waiting for input)")
             if stdout:
                 print("\n--- Program Output (before timeout) ---")
-                print(stdout[:1000])
+                print(stdout[:10000])
                 print("--- End Output ---\n")
+            if stderr:
+                print("\n--- Errors (before timeout) ---")
+                print(stderr[:1000])
+                print("--- End Errors ---\n")
             return True
         
     except FileNotFoundError:

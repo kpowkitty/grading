@@ -1,18 +1,27 @@
-from grader.extract import prepare_submissions_folder, unzip_submission, flatten_inner_folder
-from grader.compile import compile_cpp_files, link_executable, run_executable
-from grader.design_check import move_test_files, check_program_design, print_library_files
 from pathlib import Path
 import os
 import sys
 
+project_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(project_root))
+
+from grader.extract import unzip_submission, flatten
+from grader.regrade import setup_regrade_args, prepare_submission_path
+from grader.compile import compile_cpp_files, link_executable, run_executable
+from grader.design_check import move_test_files, check_program_design, print_library_files
+
 # Configuration
 ROOT_FOLDER = str(Path(__file__).resolve().parent.parent)
-TEST_FILES_FOLDER = os.path.join(ROOT_FOLDER, "testing_files")
+ASSIGNMENT_MISC = "1_assignment_misc"
+TESTING_FILES = "testing_files"
+TEST_FILES_FOLDER = os.path.join(ROOT_FOLDER, ASSIGNMENT_MISC, TESTING_FILES)
 REQUIRED_PROGRAM_FILES = ["myLibrary.hpp", "myLibrary.cpp", "testing.cpp"]
-LOG_FILE = "grading_output.txt"
 
 if __name__ == "__main__":
-    with open(LOG_FILE, "w", encoding="utf-8") as f:
+    args = setup_regrade_args()
+    submissions_path, log_file = prepare_submission_path(args, ROOT_FOLDER)
+
+    with open(log_file, "w", encoding="utf-8") as f:
         # Redirect stdout/stderr to log file
         original_stdout = sys.stdout
         original_stderr = sys.stderr
@@ -20,8 +29,7 @@ if __name__ == "__main__":
         sys.stderr = f
 
         try:
-            # 1. Prepare submissions folder
-            submissions_path = prepare_submissions_folder(ROOT_FOLDER)
+            # 1. Change to submissions folder
             os.chdir(submissions_path)
 
             # 2. Loop through each submission (zip or folder)
@@ -34,7 +42,7 @@ if __name__ == "__main__":
                         fname = entry
                     else:
                         fname = unzip_submission(entry)
-                    flatten_inner_folder(fname)
+                    flatten(fname)
 
                     # 4. Check program design / print libraries / move test files
                     print_library_files(fname)
@@ -61,4 +69,4 @@ if __name__ == "__main__":
             sys.stdout = original_stdout
             sys.stderr = original_stderr
 
-    print(f"Grading complete. Output written to {LOG_FILE}")
+    print(f"Grading complete. Output written to {log_file}")
